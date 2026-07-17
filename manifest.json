@@ -1,0 +1,19 @@
+{
+  "name": "VFES — Доставка еды в Таласе",
+  "short_name": "VFES",
+  "description": "Первый сервис доставки еды в Таласе без наценок",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#FF6B2B",
+  "orientation": "portrait",
+  "lang": "ru",
+  "categories": ["food", "lifestyle", "shopping"],
+  "icons": [
+    {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ],
+  "screenshots": [
+    {"src": "/screenshot.png", "sizes": "430x932", "type": "image/png"}
+  ]
+}

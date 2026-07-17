@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#FF6B2B"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="VFES"/>
+  <title>VFES — Доставка еды в Таласе</title>
+  <meta name="description" content="VFES — доставка еды в Таласе без наценок"/>
+  <meta property="og:title" content="VFES — Доставка еды в Таласе"/>
+  <meta property="og:description" content="Первый сервис доставки еды в Таласе без наценок."/>
+  <meta property="og:image" content="https://vfestalas.vercel.app/og-image.svg"/>
+  <meta property="og:type" content="website"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',system-ui,sans-serif;background:#1a1a2e;-webkit-tap-highlight-color:transparent;}
+    #root{max-width:430px;margin:0 auto;min-height:100vh;background:#F7F7F5;}
+    @media(max-width:430px){#root{max-width:100%;}}
+    #spl{position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s;}
+    #spl.out{opacity:0;pointer-events:none;}
+    .sl{font-size:64px;font-weight:900;color:#fff;letter-spacing:-3px;margin-bottom:6px;}
+    .sl span{color:#FF6B2B;}
+    .ss{color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:4px;margin-bottom:44px;}
+    .sb{width:160px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;margin-bottom:48px;}
+    .sf{height:100%;background:linear-gradient(90deg,#FF6B2B,#ffaa00);border-radius:2px;animation:ld 3s ease forwards;}
+    @keyframes ld{0%{width:0}70%{width:80%}100%{width:100%}}
+    .ejs{display:flex;gap:20px;}
+    .ej{font-size:34px;animation:jmp 1.5s ease-in-out infinite;}
+    .ej:nth-child(1){animation-delay:0s;}
+    .ej:nth-child(2){animation-delay:.2s;}
+    .ej:nth-child(3){animation-delay:.4s;}
+    .ej:nth-child(4){animation-delay:.6s;}
+    .ej:nth-child(5){animation-delay:.8s;}
+    @keyframes jmp{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
+  </style>
+</head>
+<body>
+  <div id="spl">
+    <div class="sl"><span>V</span>FES</div>
+    <div class="ss">ДОСТАВКА ЕДЫ · ТАЛАС</div>
+    <div class="sb"><div class="sf"></div></div>
+    <div class="ejs">
+      <div class="ej">🍕</div>
+      <div class="ej">🍣</div>
+      <div class="ej">🍔</div>
+      <div class="ej">☕</div>
+      <div class="ej">🍖</div>
+    </div>
+  </div>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
