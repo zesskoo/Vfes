@@ -2180,7 +2180,7 @@ function InvestorPanel({onLogout}){
           ))}
         </div>
         <div style={{background:"linear-gradient(135deg,#1a1a2e,#0f3460)",borderRadius:14,padding:20,color:"#fff"}}>
-          <div style={{fontWeight:800,fontSize:15,marginBottom:12,opacity:.7,textTransform:"uppercase",letterSpacing:1,fontSize:11}}>Итоги периода</div>
+          <div style={{fontWeight:800,fontSize:15,marginBottom:12,opacity:.7,textTransform:"uppercase",letterSpacing:1 }}>Итоги периода</div>
           {[
             {label:"Успешных заказов",val:done.length},
             {label:"Отменённых",val:cancelled},
