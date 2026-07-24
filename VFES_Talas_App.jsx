@@ -2203,12 +2203,10 @@ function App(){
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   if(loading) return null;
   return(
-    <ErrorBoundary>
-      <AppProvider>
-        <ToastHost/>
-        <AppInner page={page} selRest={selRest} navigate={navigate}/>
-      </AppProvider>
-    </ErrorBoundary>
+    <AppProvider>
+      <ToastHost/>
+      <AppInner page={page} selRest={selRest} navigate={navigate}/>
+    </AppProvider>
   );
 }
 function AppWrapper() {
