@@ -111,15 +111,26 @@ function AppProvider({children}){
   const [restaurants,setRestaurants]=useState([]);
   const [adminRests,setAdminRests]=useState([]);
   useEffect(()=>{
-    sb.get("restaurants","?order=created_at.asc").then(data=>{
-      if(!Array.isArray(data)) return;
-      const map=d=>({id:d.id,name:d.name,category:d.category,emoji:d.emoji,
+    Promise.all([
+      sb.get("restaurants","?order=created_at.asc"),
+      sb.get("menu_items","?order=created_at.asc")
+    ]).then(([restData,itemsData])=>{
+      if(!Array.isArray(restData)) return;
+      const items=Array.isArray(itemsData)?itemsData:[];
+      const map=d=>{
+        const menu=items.filter(m=>m.restaurant_id===d.id).map(m=>({
+          id:m.id,name:m.name,desc:m.description||"",price:m.price,
+          emoji:m.emoji||"🍽",category:m.category||"Меню",
+          inStock:m.in_stock!==false,image_url:m.image_url||null
+        }));
+        return{id:d.id,name:d.name,category:d.category,emoji:d.emoji,
         gradient:d.gradient||"linear-gradient(135deg,#FF6B2B,#ff8c5a)",
         phone:d.phone,time:d.time||"30-40 мин",deliveryFee:d.delivery_fee||0,
         hours:{open:d.hours_open||"08:00",close:d.hours_close||"22:00"},
-        status:d.status||"pending",bizPassword:d.biz_password,menu:[]});
-      setAdminRests(data.map(map));
-      setRestaurants(data.filter(d=>d.status==="open").map(map));
+        status:d.status||"pending",bizPassword:d.biz_password,menu};
+      };
+      setAdminRests(restData.map(map));
+      setRestaurants(restData.filter(d=>d.status==="open").map(map));
     }).catch(()=>{});
   },[]);
   const [orders,setOrders]=useState([]);
