@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://txjymslgjgltafiiedhc.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4anltc2xnamdsdGFmaWllZGhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDYzNTcsImV4cCI6MjA5OTc4MjM1N30.VLgNNJ5YqXwbbu7oQkjjnHk3f445wkxSfbbty4usVd4";
 const sb = {
   h: {"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
-  async get(t,q=""){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+q,{headers:this.h});return r.ok?r.json():[];},
+  async get(t,q=""){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+q,{headers:this.h});if(r.ok)return r.json();const errText=await r.text().catch(()=>"");console.error("[sb.get fail]",t,q,r.status,errText);throw new Error(errText.slice(0,150)||("HTTP "+r.status));},
   async post(t,d){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t,{method:"POST",headers:this.h,body:JSON.stringify(d)});if(r.ok)return r.json();const errText=await r.text().catch(()=>"");console.error("[sb.post fail]",t,r.status,errText,JSON.stringify(d));showToast("Ошибка сохранения: "+errText.slice(0,120));return null;},
   async patch(t,id,d){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"PATCH",headers:this.h,body:JSON.stringify(d)});if(!r.ok){const errText=await r.text().catch(()=>"");console.error("[sb.patch fail]",t,id,r.status,errText);throw new Error(errText.slice(0,150)||("HTTP "+r.status));}},
   async del(t,id){await fetch(SUPABASE_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"DELETE",headers:this.h});},
@@ -1651,7 +1651,7 @@ function BizCabinet({onLogout,bizData}){
     if(!r?.id) return;
     const load=()=>sb.get("orders","?restaurant_name=eq."+encodeURIComponent(r.name)+"&order=created_at.desc&limit=50").then(data=>{
       if(Array.isArray(data)) setBizOrders(data.map(o=>({id:o.id,restName:o.restaurant_name,items:o.items,total:o.total,status:o.status,payMethod:o.pay_method,address:o.address,phone:o.phone,note:o.note,receiptImage:o.receipt_image,customer:o.customer||"Клиент",time:new Date(o.created_at).toLocaleTimeString("ru",{hour:"2-digit",minute:"2-digit"})})));
-    }).catch(()=>{});
+    }).catch(e=>showToast("Ошибка загрузки заказов: "+e.message));
     load();
     const interval=setInterval(load,15000);
     return()=>clearInterval(interval);
