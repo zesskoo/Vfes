@@ -111,7 +111,7 @@ function AppProvider({children}){
   const [restaurants,setRestaurants]=useState([]);
   const [adminRests,setAdminRests]=useState([]);
   useEffect(()=>{
-    Promise.all([
+    const loadRests=()=>Promise.all([
       sb.get("restaurants","?order=created_at.asc"),
       sb.get("menu_items","?order=created_at.asc")
     ]).then(([restData,itemsData])=>{
@@ -132,6 +132,9 @@ function AppProvider({children}){
       setAdminRests(restData.map(map));
       setRestaurants(restData.filter(d=>d.status==="open").map(map));
     }).catch(()=>{});
+    loadRests();
+    const interval=setInterval(loadRests,15000);
+    return()=>clearInterval(interval);
   },[]);
   const [orders,setOrders]=useState([]);
   useEffect(()=>{
@@ -1920,11 +1923,28 @@ const CLIENT_PAGES=["client","restaurant","cart","notifs","profile","tracker","r
 const STAFF_PAGES=["biz","admin","operator","investor"];
 function AppInner({page,selRest,selOrderId,navigate}){
   const {cartCount,darkMode}=useApp();
-  const [authedRole,setAuthedRole]=useState(null);
-  const [authedBiz,setAuthedBiz]=useState(null);
+  const [authedRole,setAuthedRole]=useState(()=>{
+    try{return localStorage.getItem("vfes_authed_role")||null;}catch(e){return null;}
+  });
+  const [authedBiz,setAuthedBiz]=useState(()=>{
+    try{const saved=localStorage.getItem("vfes_authed_biz");return saved?JSON.parse(saved):null;}catch(e){return null;}
+  });
+  const doAuth=(role,bizData)=>{
+    setAuthedRole(role);setAuthedBiz(bizData||null);
+    try{
+      localStorage.setItem("vfes_authed_role",role);
+      if(bizData) localStorage.setItem("vfes_authed_biz",JSON.stringify(bizData));
+      else localStorage.removeItem("vfes_authed_biz");
+    }catch(e){}
+  };
+  const doLogout=()=>{
+    setAuthedRole(null);setAuthedBiz(null);
+    try{localStorage.removeItem("vfes_authed_role");localStorage.removeItem("vfes_authed_biz");}catch(e){}
+    navigate("client");
+  };
   const isClient=CLIENT_PAGES.includes(page);
   if((page==="biz"||page==="admin"||page==="operator"||page==="investor")&&authedRole!==page){
-    return <StaffLoginPage onSuccess={(role,bizData)=>{setAuthedRole(role);setAuthedBiz(bizData||null);navigate(role);}} navigate={navigate}/>;
+    return <StaffLoginPage onSuccess={(role,bizData)=>{doAuth(role,bizData);navigate(role);}} navigate={navigate}/>;
   }
   return(
     <div style={{minHeight:"100vh",background:darkMode?"#181825":"#F7F7F5",fontFamily:"'Inter',system-ui,sans-serif"}}>
@@ -1943,7 +1963,7 @@ function AppInner({page,selRest,selOrderId,navigate}){
             {page==="profile"&&<ProfilePage navigate={navigate}/>}
             {page==="auth"&&<AuthPage navigate={navigate}/>}
             {page==="about"&&<AboutPage navigate={navigate}/>}
-            {page==="login"&&<StaffLoginPage navigate={navigate} onSuccess={(role,bizData)=>{setAuthedRole(role);setAuthedBiz(bizData||null);navigate(role);}}/>}
+            {page==="login"&&<StaffLoginPage navigate={navigate} onSuccess={(role,bizData)=>{doAuth(role,bizData);navigate(role);}}/>}
           </FadeIn>
           <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:darkMode?"#0f0f1a":"#1A1A2E",display:"flex",borderTop:"2px solid #FF6B2B",zIndex:9999}}>
             {[{p:"client",i:"🏠",l:"Главная"},{p:"cart",i:"🛒",l:"Корзина"}].map(n=>(
@@ -1960,10 +1980,10 @@ function AppInner({page,selRest,selOrderId,navigate}){
           </div>
         </div>
       )}
-      {page==="biz"&&<BizCabinet bizData={authedBiz} onLogout={()=>{setAuthedRole(null);setAuthedBiz(null);navigate("client");}}/>}
-      {page==="admin"&&<AdminPanel onLogout={()=>{setAuthedRole(null);navigate("client");}}/>}
-      {page==="operator"&&<OperatorPanel onLogout={()=>{setAuthedRole(null);navigate("client");}}/>}
-      {page==="investor"&&<InvestorPanel onLogout={()=>{setAuthedRole(null);navigate("client");}}/>}
+      {page==="biz"&&<BizCabinet bizData={authedBiz} onLogout={doLogout}/>}
+      {page==="admin"&&<AdminPanel onLogout={doLogout}/>}
+      {page==="operator"&&<OperatorPanel onLogout={doLogout}/>}
+      {page==="investor"&&<InvestorPanel onLogout={doLogout}/>}
     </div>
   );
 }
