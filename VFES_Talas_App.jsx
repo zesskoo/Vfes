@@ -1918,7 +1918,7 @@ function FadeIn({children,k}){
 }
 const CLIENT_PAGES=["client","restaurant","cart","notifs","profile","tracker","reviews","loyalty","ai","auth","about","login"];
 const STAFF_PAGES=["biz","admin","operator","investor"];
-function AppInner({page,selRest,navigate}){
+function AppInner({page,selRest,selOrderId,navigate}){
   const {cartCount,darkMode}=useApp();
   const [authedRole,setAuthedRole]=useState(null);
   const [authedBiz,setAuthedBiz]=useState(null);
@@ -2286,7 +2286,7 @@ function App(){
   return(
     <AppProvider>
       <ToastHost/>
-      <AppInner page={page} selRest={selRest} navigate={navigate}/>
+      <AppInner page={page} selRest={selRest} selOrderId={selOrderId} navigate={navigate}/>
     </AppProvider>
   );
 }
