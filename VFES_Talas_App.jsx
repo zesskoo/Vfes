@@ -4,7 +4,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = {
   h: {"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
   async get(t,q=""){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+q,{headers:this.h});return r.ok?r.json():[];},
-  async post(t,d){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t,{method:"POST",headers:this.h,body:JSON.stringify(d)});return r.ok?r.json():null;},
+  async post(t,d){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t,{method:"POST",headers:this.h,body:JSON.stringify(d)});if(r.ok)return r.json();const errText=await r.text().catch(()=>"");console.error("[sb.post fail]",t,r.status,errText,JSON.stringify(d));showToast("Ошибка сохранения: "+errText.slice(0,120));return null;},
   async patch(t,id,d){await fetch(SUPABASE_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"PATCH",headers:this.h,body:JSON.stringify(d)});},
   async del(t,id){await fetch(SUPABASE_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"DELETE",headers:this.h});},
   async upload(bucket,path,file){
@@ -1531,7 +1531,7 @@ function BizMenuSection({r}){
       setMenuItems(p=>[...p,item]);
       sb.post("menu_items",{restaurant_id:r?.id,name:item.name,price:item.price,description:item.desc,emoji:item.emoji,category:item.category,in_stock:item.inStock,image_url:imageUrl}).then(res=>{
         if(res&&res[0]) setMenuItems(p=>p.map(m=>m.id===item.id?{...m,id:res[0].id}:m));
-      }).catch(()=>{});
+      }).catch(e=>{showToast("Сетевая ошибка: "+e.message);});
     }
     showToast(editItem?"Обновлено":"Добавлено");
     setShowForm(false);setEditItem(null);
