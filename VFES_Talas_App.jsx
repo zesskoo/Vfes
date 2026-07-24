@@ -157,6 +157,20 @@ function AppProvider({children}){
     adminToken:"",
     adminChatId:"",
   });
+  useEffect(()=>{
+    const loadSettings=()=>sb.get("app_settings","?id=eq.1&limit=1").then(data=>{
+      if(!Array.isArray(data)||!data[0]) return;
+      const d=data[0];
+      setTgConfig({
+        courierToken:d.courier_token||"",courierChatId:d.courier_chat_id||"",
+        supportToken:d.support_token||"",supportChatId:d.support_chat_id||"",
+        adminToken:d.admin_token||"",adminChatId:d.admin_chat_id||"",
+      });
+    }).catch(()=>{});
+    loadSettings();
+    const interval=setInterval(loadSettings,20000);
+    return()=>clearInterval(interval);
+  },[]);
   const [profile,setProfile]=useState({name:"",phone:"",address:"",firstVisit:true});
   const [darkMode,setDarkMode]=useState(false);
   const toggleDark=()=>setDarkMode(v=>!v);
@@ -1875,7 +1889,14 @@ function AdminBotsSection(){
   const {tgConfig,setTgConfig}=useApp();
   const [form,setForm]=useState({...tgConfig});
   const [testing,setTesting]=useState(false);
-  const save=()=>{setTgConfig(form);showToast("Настройки ботов сохранены");};
+  const save=()=>{
+    setTgConfig(form);
+    sb.patch("app_settings",1,{
+      courier_token:form.courierToken,courier_chat_id:form.courierChatId,
+      support_token:form.supportToken,support_chat_id:form.supportChatId,
+      admin_token:form.adminToken,admin_chat_id:form.adminChatId,
+    }).then(()=>showToast("Настройки ботов сохранены")).catch(e=>showToast("Ошибка сохранения: "+e.message));
+  };
   const testBot=async(token,chatId,label)=>{
     if(!token||!chatId) return showToast("Заполните токен и chat_id");
     setTesting(true);
