@@ -135,13 +135,16 @@ function AppProvider({children}){
   },[]);
   const [orders,setOrders]=useState([]);
   useEffect(()=>{
-    sb.get("orders","?order=created_at.desc&limit=100").then(data=>{
+    const loadOrders=()=>sb.get("orders","?order=created_at.desc&limit=100").then(data=>{
       if(!Array.isArray(data)) return;
       setOrders(data.map(o=>({id:o.id,restName:o.restaurant_name,restEmoji:o.restaurant_emoji,
         items:o.items,total:o.total,status:o.status,payMethod:o.pay_method,
         address:o.address,phone:o.phone,note:o.note,receiptImage:o.receipt_image,
         customer:o.customer,time:new Date(o.created_at).toLocaleTimeString("ru",{hour:"2-digit",minute:"2-digit"})})));
     }).catch(()=>{});
+    loadOrders();
+    const interval=setInterval(loadOrders,8000);
+    return()=>clearInterval(interval);
   },[]);
   const [tgConfig,setTgConfig]=useState({
     courierToken:"",
@@ -154,7 +157,12 @@ function AppProvider({children}){
   const [profile,setProfile]=useState({name:"",phone:"",address:"",firstVisit:true});
   const [darkMode,setDarkMode]=useState(false);
   const toggleDark=()=>setDarkMode(v=>!v);
-  const [orderHistory,setOrderHistory]=useState(HISTORY_INIT);
+  const [orderHistory,setOrderHistory]=useState(()=>{
+    try{const saved=localStorage.getItem("vfes_order_history");return saved?JSON.parse(saved):HISTORY_INIT;}catch(e){return HISTORY_INIT;}
+  });
+  useEffect(()=>{
+    try{localStorage.setItem("vfes_order_history",JSON.stringify(orderHistory));}catch(e){}
+  },[orderHistory]);
   const [notifications,setNotifications]=useState([
     {id:1,text:"Ваш заказ #1041 готовится 🍳",time:"14:20",read:false},
     {id:2,text:"Pizza House: скидка 15% до конца дня!",time:"13:00",read:false},
@@ -1113,8 +1121,12 @@ function OrderTrackerPage({navigate,orderId}){
               </div>
             ))}
           </div>
-          <div style={{background:"#EEF5EE",borderRadius:12,height:80,display:"flex",alignItems:"center",justifyContent:"center",color:TX2,fontSize:13}}>
-            {"🚴"} Курьер в пути...
+          <div style={{background:"#EEF5EE",borderRadius:12,height:80,display:"flex",alignItems:"center",justifyContent:"center",color:TX2,fontSize:13,textAlign:"center",padding:"0 12px"}}>
+            {{new:"⏳ Ожидаем подтверждение заведения...",
+              cooking:"🍳 Заведение готовит ваш заказ...",
+              delivery:"🚴 Курьер в пути...",
+              done:"✅ Заказ доставлен, приятного аппетита!",
+              cancelled:"❌ Заказ был отменён"}[order?.status]||"⏳ Обрабатываем заказ..."}
           </div>
         </div>
         <a href="tel:+996507777358" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:O,borderRadius:12,padding:"13px",fontSize:14,fontWeight:700,color:"#fff",textDecoration:"none",marginBottom:10}}>
@@ -1123,6 +1135,46 @@ function OrderTrackerPage({navigate,orderId}){
         <a href="https://t.me/vfes_support_bot" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"#229ED9",borderRadius:12,padding:"13px",fontSize:14,fontWeight:700,color:"#fff",textDecoration:"none"}}>
           Telegram поддержка
         </a>
+      </div>
+    </div>
+  );
+}
+function OrderHistoryPage({navigate}){
+  const {orderHistory,orders,darkMode}=useApp();
+  const sMap={new:{l:"Новый",bg:"#EFF6FF",c:"#1D4ED8"},cooking:{l:"Готовится",bg:"#FFF9F0",c:"#F59E0B"},delivery:{l:"В пути",bg:"#F0FFF4",c:"#16A34A"},done:{l:"Доставлен",bg:"#F0FFF4",c:"#16A34A"},cancelled:{l:"Отменён",bg:"#FEE2E2",c:"#EF4444"}};
+  const list=orderHistory.map(h=>{
+    const live=orders.find(o=>o.id===h.id);
+    return{...h,status:live?.status||h.status};
+  });
+  return(
+    <div style={{paddingBottom:80,background:darkMode?DK.GR:GR,minHeight:"100vh"}}>
+      <div style={{background:darkMode?DK.header:W,borderBottom:`1px solid ${BD}`,padding:"0 16px",display:"flex",alignItems:"center",height:54,gap:12,position:"sticky",top:0,zIndex:100}}>
+        <button onClick={()=>navigate("profile")} style={{background:"none",border:"none",fontSize:20,cursor:"pointer"}}>{"←"}</button>
+        <div style={{fontSize:16,fontWeight:800}}>Мои заказы</div>
+      </div>
+      <div style={{padding:16}}>
+        {list.length===0&&(
+          <div style={{textAlign:"center",padding:"50px 20px",color:TX2}}>
+            <div style={{fontSize:44,marginBottom:10}}>🧾</div>
+            <div>У вас пока нет заказов</div>
+          </div>
+        )}
+        {list.map(o=>{
+          const s=sMap[o.status]||sMap.new;
+          return(
+            <div key={o.id} onClick={()=>navigate("tracker",{orderId:o.id})} style={{background:darkMode?DK.card:W,borderRadius:14,border:`1px solid ${BD}`,padding:14,marginBottom:10,cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                <div>
+                  <div style={{fontWeight:800,fontSize:14}}>{o.restEmoji} {o.restName}</div>
+                  <div style={{fontSize:11,color:TX2,marginTop:2}}>Заказ {"#"}{o.id} · {o.date}</div>
+                </div>
+                <span style={{background:s.bg,color:s.c,padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{s.l}</span>
+              </div>
+              <div style={{fontSize:12,color:TX2,marginBottom:6}}>{o.items}</div>
+              <div style={{fontWeight:800,color:O}}>{o.total} сом</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1293,6 +1345,10 @@ function ProfilePage({navigate}){
           <div style={{fontSize:24}}>{"›"}</div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+          <button onClick={()=>navigate("history")} style={{background:W,border:`1px solid ${BD}`,borderRadius:12,padding:"13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+            <span style={{fontSize:20}}>{"🧾"}</span>
+            <div style={{textAlign:"left"}}><div style={{fontWeight:700}}>Мои заказы</div><div style={{fontSize:10,color:TX2}}>{orderHistory.length} заказов</div></div>
+          </button>
           <button onClick={()=>navigate("about")} style={{background:W,border:`1px solid ${BD}`,borderRadius:12,padding:"13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
             <span style={{fontSize:20}}>{"ℹ️"}</span>
             <div style={{textAlign:"left"}}><div style={{fontWeight:700}}>О нас</div><div style={{fontSize:10,color:TX2}}>Контакты</div></div>
@@ -1878,7 +1934,8 @@ function AppInner({page,selRest,navigate}){
             {page==="client"&&<ClientHome navigate={navigate}/>}
             {page==="restaurant"&&<RestaurantPage navigate={navigate} restaurant={selRest}/>}
             {page==="cart"&&<CartPage navigate={navigate}/>}
-            {page==="tracker"&&<OrderTrackerPage navigate={navigate} orderId={null}/>}
+            {page==="tracker"&&<OrderTrackerPage navigate={navigate} orderId={selOrderId}/>}
+            {page==="history"&&<OrderHistoryPage navigate={navigate}/>}
             {page==="loyalty"&&<LoyaltyPage navigate={navigate}/>}
             {page==="reviews"&&<ReviewsPage navigate={navigate} restaurant={selRest}/>}
             {page==="notifs"&&<NotifsPage navigate={navigate}/>}
@@ -2221,8 +2278,9 @@ function InvestorPanel({onLogout}){
 function App(){
   const [page,setPage]=useState("client");
   const [selRest,setSelRest]=useState(null);
+  const [selOrderId,setSelOrderId]=useState(null);
   const [loading,setLoading]=useState(true);
-  const navigate=(p,data=null)=>{setPage(p);if(data?.restaurant)setSelRest(data.restaurant);};
+  const navigate=(p,data=null)=>{setPage(p);if(data?.restaurant)setSelRest(data.restaurant);if(data?.orderId)setSelOrderId(data.orderId);};
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   if(loading) return null;
   return(
