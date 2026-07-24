@@ -5,7 +5,7 @@ const sb = {
   h: {"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
   async get(t,q=""){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+q,{headers:this.h});return r.ok?r.json():[];},
   async post(t,d){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t,{method:"POST",headers:this.h,body:JSON.stringify(d)});if(r.ok)return r.json();const errText=await r.text().catch(()=>"");console.error("[sb.post fail]",t,r.status,errText,JSON.stringify(d));showToast("Ошибка сохранения: "+errText.slice(0,120));return null;},
-  async patch(t,id,d){await fetch(SUPABASE_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"PATCH",headers:this.h,body:JSON.stringify(d)});},
+  async patch(t,id,d){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"PATCH",headers:this.h,body:JSON.stringify(d)});if(!r.ok){const errText=await r.text().catch(()=>"");console.error("[sb.patch fail]",t,id,r.status,errText);throw new Error(errText.slice(0,150)||("HTTP "+r.status));}},
   async del(t,id){await fetch(SUPABASE_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"DELETE",headers:this.h});},
   async upload(bucket,path,file){
     const r=await fetch(SUPABASE_URL+"/storage/v1/object/"+bucket+"/"+path,{
@@ -179,6 +179,7 @@ function AppProvider({children}){
   const toggleStopList=(rid,iid)=>setRestaurants(prev=>prev.map(r=>r.id===rid?{...r,menu:r.menu.map(m=>m.id===iid?{...m,inStock:!m.inStock}:m)}:r));
   const updateOrderStatus=(oid,status)=>{
     setOrders(prev=>prev.map(o=>o.id===oid?{...o,status}:o));
+    sb.patch("orders",oid,{status}).catch(e=>showToast("Ошибка обновления статуса: "+e.message));
     const msgs={cooking:"🍳 Ваш заказ готовится!",delivery:"🚴 Курьер уже едет к вам!",done:"✅ Заказ доставлен! Приятного аппетита!",cancelled:"❌ Заказ отменён"};
     if(msgs[status]){
       setNotifications(prev=>[{id:Date.now(),text:msgs[status],time:new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}),read:false},...prev]);
@@ -589,18 +590,29 @@ function CartPage({navigate}){
   );
   if(step==="pay"){
     const placeOrder=()=>{
-      const id=Date.now()%10000+1044;
       const doSave=(receiptData)=>{
-        sendAdminLog(tgConfig,"🆕 Новый заказ",`${restaurant?.name} · ${total}с · ${address} · ${phone}`);
-        addToHistory({id,restName:restaurant?.name||"Ресторан",restEmoji:restaurant?.emoji||"🍽️",
-          items:cart.map(i=>i.name+" x"+i.qty).join(", "),total,
-          date:new Date().toLocaleDateString("ru"),status:"new",
-          note:orderNote||"",payMethod,address,phone,
-          receiptImage:receiptData||null,customer:"Клиент",
-          time:new Date().toLocaleTimeString("ru",{hour:"2-digit",minute:"2-digit"})});
-        clearCart();
-        if(payMethod==="omoney"){setStep("pending");}
-        else{showToast("Заказ принят!");navigate("tracker",{orderId:id});}
+        const payload={
+          restaurant_name:restaurant?.name||"Ресторан",
+          restaurant_emoji:restaurant?.emoji||"🍽️",
+          items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),
+          total,status:"new",pay_method:payMethod,
+          address:address||"",phone:phone||"",note:orderNote||"",
+          receipt_image:receiptData||null,customer:profile?.name||"Клиент"
+        };
+        sb.post("orders",payload).then(res=>{
+          const savedOrder=Array.isArray(res)&&res[0];
+          const id=savedOrder?.id||(Date.now()%10000+1044);
+          sendAdminLog(tgConfig,"🆕 Новый заказ",`${restaurant?.name} · ${total}с · ${address} · ${phone}`);
+          addToHistory({id,restName:restaurant?.name||"Ресторан",restEmoji:restaurant?.emoji||"🍽️",
+            items:cart.map(i=>i.name+" x"+i.qty).join(", "),total,
+            date:new Date().toLocaleDateString("ru"),status:"new",
+            note:orderNote||"",payMethod,address,phone,
+            receiptImage:receiptData||null,customer:"Клиент",
+            time:new Date().toLocaleTimeString("ru",{hour:"2-digit",minute:"2-digit"})});
+          clearCart();
+          if(payMethod==="omoney"){setStep("pending");}
+          else{showToast("Заказ принят!");navigate("tracker",{orderId:id});}
+        }).catch(e=>{showToast("Не удалось отправить заказ: "+e.message);});
       };
       if(receipt&&payMethod==="omoney"){
         const reader=new FileReader();
